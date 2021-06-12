@@ -11,6 +11,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             ["protos/google/cloud/vision/v1/image_annotator.proto"],
             "src/vision/api",
         ),
+        (
+            ["protos/google/container/v1/cluster_service.proto"],
+            "src/container/api",
+        ),
     ];
 
     for (proto_files, out_dir) in protos.iter() {

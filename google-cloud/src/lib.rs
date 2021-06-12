@@ -9,6 +9,8 @@ pub mod authorize;
 /// Error handling utilities.
 pub mod error;
 
+pub mod container;
+
 /// Datastore bindings.
 #[cfg(feature = "datastore")]
 pub mod datastore;
@@ -21,6 +23,9 @@ pub mod storage;
 /// Cloud Vision bindings.
 #[cfg(feature = "vision")]
 pub mod vision;
+
+#[cfg(feature = "container")]
+pub mod container;
 
 #[cfg(test)]
 mod tests;
