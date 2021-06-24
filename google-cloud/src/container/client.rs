@@ -8,7 +8,7 @@ use tonic::transport::{Certificate, Channel, ClientTlsConfig};
 use tonic::{IntoRequest, Request};
 // use crate::container::api;
 use crate::container::api::cluster_manager_client::ClusterManagerClient;
-use crate::container::api::{ ListClustersRequest};
+use crate::container::api::{ ListClustersRequest,Cluster,GetServerConfigRequest,ServerConfig};
 use crate::container::Error;
 
 /// The Cloud Storage client, tied to a specific project.
@@ -81,8 +81,8 @@ impl Client {
         })
     }
  
-    pub async fn list_clusters(&mut self) -> Result<Vec<String>, Error> {
-        println!("hi");
+    pub async fn list_clusters(&mut self) -> Result<Vec<Cluster>, Error> {
+
         let request = ListClustersRequest {
             parent: format!(
                 "projects/{0}/locations/{1}/clusters",
@@ -92,17 +92,30 @@ impl Client {
             project_id: self.project_name.clone(),
             zone: "-".to_string(),
         };
-        println!("h2");
         let request = self.construct_request(request).await?;
-        println!("h3");
         let response = self.service.list_clusters(request).await?;
         let response = response.into_inner(); // find out what it does
-        let m: Vec<String> = response
-        .clusters
-        .into_iter()
-        .map(|cluster| cluster.name).collect();
-        println!("h4");
-        println!("hi no of cluster{:?}",m);
-        Ok(Vec::new())
+        // let m: Vec<String> = response
+        // .clusters
+        // .into_iter()
+        // .map(|cluster| cluster.name).collect();
+        let m: Vec<Cluster> = response.clusters;
+        Ok(m)
     }
+
+    pub async fn get_server_config(&mut self, zone: String) -> Result<ServerConfig,Error> {
+        let request = GetServerConfigRequest {
+            name: format!(
+                "projects/{0}/locations/{1}/serverConfig",
+                self.project_name,
+                "australia-southeast1"
+            ),
+            project_id: self.project_name.clone(),
+            zone: zone,
+        };
+        let request = self.construct_request(request).await?;
+        let response = self.service.get_server_config(request).await?;
+        Ok(response.into_inner())
+    }
+
 }

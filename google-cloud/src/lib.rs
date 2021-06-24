@@ -9,7 +9,6 @@ pub mod authorize;
 /// Error handling utilities.
 pub mod error;
 
-pub mod container;
 
 /// Datastore bindings.
 #[cfg(feature = "datastore")]
@@ -24,7 +23,7 @@ pub mod storage;
 #[cfg(feature = "vision")]
 pub mod vision;
 
-#[cfg(feature = "container")]
+// #[cfg(feature = "container")]
 pub mod container;
 
 #[cfg(test)]
