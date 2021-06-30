@@ -1,4 +1,4 @@
-pub mod client;
+mod client;
 mod api {
     include!("api/google.container.v1.rs");
 }

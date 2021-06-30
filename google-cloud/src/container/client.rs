@@ -8,10 +8,14 @@ use tonic::transport::{Certificate, Channel, ClientTlsConfig};
 use tonic::{IntoRequest, Request};
 // use crate::container::api;
 use crate::container::api::cluster_manager_client::ClusterManagerClient;
-use crate::container::api::{ ListClustersRequest,Cluster,GetServerConfigRequest,ServerConfig};
+use crate::container::api::{
+    Cluster, GetClusterRequest, GetServerConfigRequest, ListClustersRequest, ListClustersResponse,
+    ListNodePoolsRequest, ListNodePoolsResponse, ListOperationsRequest, ListOperationsResponse,
+    ListUsableSubnetworksRequest, ListUsableSubnetworksResponse, ServerConfig,
+};
 use crate::container::Error;
 
-/// The Cloud Storage client, tied to a specific project.
+/// The  client, tied to a specific project.
 #[derive(Clone)]
 pub struct Client {
     pub(crate) project_name: String,
@@ -23,9 +27,7 @@ impl Client {
     #[allow(unused)]
     pub(crate) const DOMAIN_NAME: &'static str = "container.googleapis.com";
     pub(crate) const ENDPOINT: &'static str = "https://container.googleapis.com";
-    pub(crate) const SCOPES: [&'static str; 1] = [
-        "https://www.googleapis.com/auth/cloud-platform",
-    ];
+    pub(crate) const SCOPES: [&'static str; 1] = ["https://www.googleapis.com/auth/cloud-platform"];
     #[allow(dead_code)]
     pub(crate) fn uri(uri: &str) -> String {
         if uri.starts_with('/') {
@@ -57,6 +59,22 @@ impl Client {
         Client::from_credentials(project_name, creds).await
     }
 
+    ///
+    #[allow(deprecated)]
+    pub async fn get_server_config(&mut self, zone: String) -> Result<ServerConfig, Error> {
+        let request = GetServerConfigRequest {
+            name: format!(
+                "projects/{0}/locations/{1}/serverConfig",
+                self.project_name, "australia-southeast1"
+            ),
+            project_id: self.project_name.clone(),
+            zone: zone,
+        };
+        let request = self.construct_request(request).await?;
+        let response = self.service.get_server_config(request).await?;
+        Ok(response.into_inner())
+    }
+
     /// Create a new client for the specified project with custom credentials.
     pub async fn from_credentials(
         project_name: impl Into<String>,
@@ -80,14 +98,13 @@ impl Client {
             ))),
         })
     }
- 
-    pub async fn list_clusters(&mut self) -> Result<Vec<Cluster>, Error> {
-
+    ///
+    #[allow(deprecated)]
+    pub async fn list_clusters(&mut self, location: &str) -> Result<ListClustersResponse, Error> {
         let request = ListClustersRequest {
             parent: format!(
                 "projects/{0}/locations/{1}/clusters",
-                self.project_name,
-                "australia-southeast1"
+                self.project_name, location
             ),
             project_id: self.project_name.clone(),
             zone: "-".to_string(),
@@ -95,27 +112,86 @@ impl Client {
         let request = self.construct_request(request).await?;
         let response = self.service.list_clusters(request).await?;
         let response = response.into_inner(); // find out what it does
-        // let m: Vec<String> = response
-        // .clusters
-        // .into_iter()
-        // .map(|cluster| cluster.name).collect();
-        let m: Vec<Cluster> = response.clusters;
-        Ok(m)
+        Ok(response)
     }
-
-    pub async fn get_server_config(&mut self, zone: String) -> Result<ServerConfig,Error> {
-        let request = GetServerConfigRequest {
-            name: format!(
-                "projects/{0}/locations/{1}/serverConfig",
-                self.project_name,
-                "australia-southeast1"
+    ///
+    #[allow(deprecated)]
+    pub async fn list_node_pools(
+        &mut self,
+        cluster_id: &str,
+        location: &str,
+    ) -> Result<ListNodePoolsResponse, Error> {
+        let request = ListNodePoolsRequest {
+            parent: format!(
+                "projects/{0}/locations/{1}/clusters/{2}",
+                self.project_name, location, cluster_id
             ),
+            cluster_id: cluster_id.to_string(),
             project_id: self.project_name.clone(),
-            zone: zone,
+            zone: "australia-southeast1-a".to_string(),
         };
         let request = self.construct_request(request).await?;
-        let response = self.service.get_server_config(request).await?;
-        Ok(response.into_inner())
+        let response = self.service.list_node_pools(request).await?;
+        let response = response.into_inner(); // find out what it does
+        Ok(response)
+    }
+    ///
+    #[allow(deprecated)]
+    pub async fn list_operations(
+        &mut self,
+        location: &str,
+        zone: &str,
+    ) -> Result<ListOperationsResponse, Error> {
+        let request = ListOperationsRequest {
+            parent: format!("projects/{0}/locations/{1}/", self.project_name, location,),
+            project_id: self.project_name.clone(),
+            zone: zone.to_owned(),
+        };
+        let request = self.construct_request(request).await?;
+        let response = self.service.list_operations(request).await?;
+        let response = response.into_inner(); // find out what it does
+        Ok(response)
+    }
+    ///
+    #[allow(deprecated)]
+    pub async fn list_usable_subnetworks(
+        &mut self,
+        filter: &str,
+        page_size: i32,
+        page_token: &str,
+    ) -> Result<ListUsableSubnetworksResponse, Error> {
+        let request = ListUsableSubnetworksRequest {
+            parent: format!("projects/{0}", self.project_name,),
+            filter: filter.to_owned(),
+            page_size: page_size,
+            page_token: page_token.to_owned(),
+        };
+        let request = self.construct_request(request).await?;
+        let response = self.service.list_usable_subnetworks(request).await?;
+        let response = response.into_inner(); // find out what it does
+        Ok(response)
     }
 
+    ///Gets the details of a specific cluster.
+    #[allow(deprecated)]
+    pub async fn get_cluster(
+        &mut self,
+        cluster_id: &str,
+        location: &str,
+        zone: &str,
+    ) -> Result<Cluster, Error> {
+        let request = GetClusterRequest {
+            name: format!(
+                "projects/{0}/locations/{1}/clusters/{2}",
+                self.project_name, location, cluster_id
+            ),
+            cluster_id: cluster_id.to_owned(),
+            project_id: self.project_name.clone(),
+            zone: zone.to_owned(),
+        };
+        let request = self.construct_request(request).await?;
+        let response = self.service.get_cluster(request).await?;
+        let response = response.into_inner(); // find out what it does
+        Ok(response)
+    }
 }

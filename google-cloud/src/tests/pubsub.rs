@@ -37,7 +37,7 @@ async fn pubsub_lists_topics() {
     let mut client = assert_ok!(setup_client().await);
     println!("hi");
     //? List all topics of the project.
-   assert_ok!(client.topics().await);
+    assert_ok!(client.topics().await);
 }
 
 //#[tokio::test]
