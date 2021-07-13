@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::sync::Arc;
@@ -6,17 +7,17 @@ use crate::authorize::{ApplicationCredentials, TokenManager, TLS_CERTS};
 use tokio::sync::Mutex;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig};
 use tonic::{IntoRequest, Request};
+use crate::container::GCluster;
 // use crate::container::api;
 use crate::container::api::cluster_manager_client::ClusterManagerClient;
 use crate::container::api::{
-    Cluster, GetClusterRequest, GetJsonWebKeysRequest, GetJsonWebKeysResponse,
-    GetServerConfigRequest, ListClustersRequest, ListClustersResponse, ListNodePoolsRequest,
-    ListNodePoolsResponse, ListOperationsRequest, ListOperationsResponse,
-    ListUsableSubnetworksRequest, ListUsableSubnetworksResponse, ServerConfig,
-    GetNodePoolRequest, NodePool,GetOperationRequest,
-    Operation,CreateClusterRequest
-    
+    Cluster, CreateClusterRequest, GetClusterRequest, GetJsonWebKeysRequest,
+    GetJsonWebKeysResponse, GetNodePoolRequest, GetOperationRequest, GetServerConfigRequest,
+    ListClustersRequest, ListClustersResponse,
+    ListNodePoolsRequest, ListNodePoolsResponse, ListOperationsRequest, ListOperationsResponse,
+    ListUsableSubnetworksRequest, ListUsableSubnetworksResponse,NodePool,Operation, ServerConfig,
 };
+
 use crate::container::Error;
 
 /// The  client, tied to a specific project.
@@ -87,28 +88,38 @@ impl Client {
         })
     }
 
-    ///CreateCluster creates a cluster, consisting of the specified number and type of Google Compute Engine instances. 
+    ///CreateCluster creates a cluster, consisting of the specified number and type of Google Compute Engine instances.
     ////By default, the cluster is created in the project’s default network (at https://cloud.google.com/compute/docs/networks-and-firewalls#networks).
-    ///One firewall is added for the cluster. After cluster creation, the Kubelet creates routes for each node to allow the containers on that node to 
+    ///One firewall is added for the cluster. After cluster creation, the Kubelet creates routes for each node to allow the containers on that node to
     ////communicate with all other instances in the cluster.
     /// Finally, an entry is added to the project’s global metadata indicating which CIDR range the cluster is using.
     #[allow(deprecated)]
-    pub async fn create_cluster(&mut self,
-        cluster: Option<Cluster>,
+    pub async fn create_cluster(
+        &mut self,
+        cluster: Option<GCluster>,
         location: &str,
-        zone: &str,) -> Result<Operation, Error> {
+        zone: &str
+    ) -> Result<Operation, Error> {
+        let r_cluster = match cluster {
+            Some(Cluster) => Some(Cluster.into()),
+            _ => None,
+        };
         let request = CreateClusterRequest {
             project_id: self.project_name.clone(),
             zone: zone.to_owned(),
-            cluster: cluster,
-            parent: format!("projects/{0}/locations/{1}",self.project_name.clone(),location)
+            cluster: r_cluster,
+            parent: format!(
+                "projects/{0}/locations/{1}",
+                self.project_name.clone(),
+                location
+            ),
         };
-        let request= self.construct_request(request).await?;
+        let request = self.construct_request(request).await?;
         let response = self.service.create_cluster(request).await?;
         let response = response.into_inner();
         Ok(response)
     }
-    
+
     ///Gets the details of a specific cluster.
     #[allow(deprecated)]
     pub async fn get_cluster(
@@ -164,11 +175,11 @@ impl Client {
         let request = GetNodePoolRequest {
             project_id: self.project_name.clone(),
             zone: zone.to_owned(),
-            cluster_id:cluster_id.to_owned(),
-            node_pool_id:node_pool_id.to_owned(),
+            cluster_id: cluster_id.to_owned(),
+            node_pool_id: node_pool_id.to_owned(),
             name: format!(
                 "projects/{0}/locations/{1}/clusters/{2}/nodePools/{3}",
-                self.project_name, location, cluster_id,node_pool_id
+                self.project_name, location, cluster_id, node_pool_id
             ),
         };
         let request = self.construct_request(request).await?;
@@ -176,7 +187,6 @@ impl Client {
         let response = response.into_inner();
         Ok(response)
     }
-
 
     /// GetOperation gets the specified operation..
     #[allow(deprecated)]
@@ -189,7 +199,7 @@ impl Client {
         let request = GetOperationRequest {
             project_id: self.project_name.clone(),
             zone: zone.to_owned(),
-            operation_id:operation_id.to_owned(),
+            operation_id: operation_id.to_owned(),
             name: format!(
                 "projects/{0}/locations/{1}/operations/{2}`",
                 self.project_name, location, operation_id
@@ -200,21 +210,21 @@ impl Client {
         let response = response.into_inner();
         Ok(response)
     }
-        ///GetServerConfig returns configuration info about the Google Kubernetes Engine service.
-        #[allow(deprecated)]
-        pub async fn get_server_config(&mut self, zone: String) -> Result<ServerConfig, Error> {
-            let request = GetServerConfigRequest {
-                name: format!(
-                    "projects/{0}/locations/{1}/serverConfig",
-                    self.project_name, "australia-southeast1"
-                ),
-                project_id: self.project_name.clone(),
-                zone: zone,
-            };
-            let request = self.construct_request(request).await?;
-            let response = self.service.get_server_config(request).await?;
-            Ok(response.into_inner())
-        }
+    ///GetServerConfig returns configuration info about the Google Kubernetes Engine service.
+    #[allow(deprecated)]
+    pub async fn get_server_config(&mut self, zone: String) -> Result<ServerConfig, Error> {
+        let request = GetServerConfigRequest {
+            name: format!(
+                "projects/{0}/locations/{1}/serverConfig",
+                self.project_name, "australia-southeast1"
+            ),
+            project_id: self.project_name.clone(),
+            zone: zone,
+        };
+        let request = self.construct_request(request).await?;
+        let response = self.service.get_server_config(request).await?;
+        Ok(response.into_inner())
+    }
     ///ListClusters lists all clusters owned by a project in either the specified zone or all zones.
     #[allow(deprecated)]
     pub async fn list_clusters(&mut self, location: &str) -> Result<ListClustersResponse, Error> {
@@ -287,5 +297,5 @@ impl Client {
         let response = self.service.list_usable_subnetworks(request).await?;
         let response = response.into_inner();
         Ok(response)
-    }    
+    }
 }
